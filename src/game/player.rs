@@ -62,7 +62,7 @@ impl Player {
     }
 
     //pub fn full_position(&self) -> ((u8, u8), u8, u8) {
-        //(self.site.get_x(), self.position.y, self.position.x)
+    //(self.site.get_x(), self.position.y, self.position.x)
     //}
 
     pub fn inc_x(&mut self, x: i16) {
