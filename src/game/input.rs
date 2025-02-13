@@ -51,13 +51,11 @@ pub fn handle_player_axis(
 
     match axis {
         Axis::LeftStickX | Axis::RightStickX => {
-            let mut player = player.lock().unwrap();
-            player.inc_x(movement_size);
+            player.lock().unwrap().inc_x(movement_size);
             Some(Instant::now())
         }
         Axis::LeftStickY | Axis::RightStickY => {
-            let mut player = player.lock().unwrap();
-            player.inc_y(movement_size);
+            player.lock().unwrap().inc_y(movement_size);
             Some(Instant::now())
         }
         _ => None,

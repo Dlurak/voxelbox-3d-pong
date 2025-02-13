@@ -5,7 +5,7 @@ macro_rules! colors_by_name {
     ($($color:ident => ($red:expr, $green:expr, $blue:expr)),* $(,)?) => {
         impl Rgb {
             $(
-                pub fn $color() -> Self {
+                pub const fn $color() -> Self {
                     Self($red, $green, $blue)
                 }
             )*
@@ -14,7 +14,7 @@ macro_rules! colors_by_name {
 }
 
 impl Rgb {
-    pub fn new(r: u8, g: u8, b: u8) -> Self {
+    pub const fn new(r: u8, g: u8, b: u8) -> Self {
         Self(r, g, b)
     }
 }
@@ -24,7 +24,8 @@ colors_by_name! {
     white => (255, 255, 255),
     green => (22, 163, 74),
     yellow => (234, 179, 8),
-    purple => (147, 51, 234)
+    purple => (147, 51, 234),
+    red => (u8::MAX, 0, 0)
 }
 
 impl From<Rgb> for (u8, u8, u8) {

@@ -9,7 +9,7 @@ pub const DEEPTH: u8 = 12;
 struct Leds([[[Rgb; DEEPTH as usize]; HEIGHT as usize]; WIDTH as usize]);
 
 impl Leds {
-    fn new(color: Rgb) -> Self {
+    const fn new(color: Rgb) -> Self {
         Self([[[color; DEEPTH as usize]; HEIGHT as usize]; WIDTH as usize])
     }
 
@@ -39,7 +39,7 @@ pub struct Voxelbox<'a> {
 }
 
 impl<'a> Voxelbox<'a> {
-    pub fn new(ip: &'a str, port: u16) -> Self {
+    pub const fn new(ip: &'a str, port: u16) -> Self {
         Self {
             ip,
             port,

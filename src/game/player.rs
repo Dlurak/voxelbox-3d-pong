@@ -8,7 +8,7 @@ enum PlayerSite {
 }
 
 impl PlayerSite {
-    fn get_x(&self) -> (u8, u8) {
+    const fn get_x(&self) -> (u8, u8) {
         match self {
             Self::Left => (0, 1),
             Self::Right => (voxelbox::WIDTH - 1, voxelbox::WIDTH - 2),
@@ -61,9 +61,9 @@ impl Player {
         Ok(())
     }
 
-    //pub fn full_position(&self) -> ((u8, u8), u8, u8) {
-    //(self.site.get_x(), self.position.y, self.position.x)
-    //}
+    pub const fn full_position(&self) -> ((u8, u8), u8, u8) {
+        (self.site.get_x(), self.position.y, self.position.x)
+    }
 
     pub fn inc_x(&mut self, x: i16) {
         let padding = (super::pad::WIDTH - 1) / 2;
