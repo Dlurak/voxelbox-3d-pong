@@ -1,20 +1,19 @@
-use crate::{color::Rgb, game::player::Player, odd::Odd, voxelbox};
+use crate::{color::Rgb, dynamic_vec, game::player::Player, odd::Odd, plus_minus, voxelbox};
 
 use super::pad;
 
-macro_rules! plus_minus {
-    ($($expr:expr),*$(,)?) => {
-        [
-            $(
-                $expr - 1,
-                $expr + 1,
-            )*
-        ]
-    }
-}
-
 const SIZE: Odd<u8> = Odd::<u8>::new_panics(3);
 const PADDING: u8 = (SIZE.value() - 1) / 2;
+
+#[derive(PartialEq, Eq, Debug)]
+pub enum VoxelboxSide {
+    Left,
+    Right,
+    Top,
+    Bottom,
+    Front,
+    Back,
+}
 
 pub struct Ball {
     position: (u8, u8, u8),
@@ -33,15 +32,17 @@ impl Ball {
         self.position = (x, y, z);
     }
 
-    const fn collides_with_voxelbox(&self) -> bool {
+    fn colliding_voxelbox_sides(&self) -> Vec<VoxelboxSide> {
         let (x, y, z) = self.position;
 
-        (x == PADDING)
-            || (x == voxelbox::WIDTH - 1 - PADDING)
-            || (y == PADDING)
-            || (y == voxelbox::HEIGHT - 1 - PADDING)
-            || (z == PADDING)
-            || (z == voxelbox::DEEPTH - 1 - PADDING)
+        dynamic_vec! {
+            x == PADDING => VoxelboxSide::Left,
+            x == voxelbox::WIDTH - 1 - PADDING => VoxelboxSide::Right,
+            y == PADDING => VoxelboxSide::Top,
+            y == voxelbox::HEIGHT - 1 - PADDING => VoxelboxSide::Bottom,
+            z == PADDING => VoxelboxSide::Front,
+            z == voxelbox::DEEPTH - 1 - PADDING => VoxelboxSide::Back,
+        }
     }
 
     fn collides_with_player(&self, player: &Player) -> bool {
@@ -64,10 +65,31 @@ impl Ball {
         })
     }
 
-    pub fn collides(&self, player_1: &Player, player_2: &Player) -> bool {
-        self.collides_with_voxelbox()
-            || self.collides_with_player(player_1)
-            || self.collides_with_player(player_2)
+    pub fn colliding_sides(&self, player_1: &Player, player_2: &Player) -> Vec<VoxelboxSide> {
+        dynamic_vec! {self.colliding_voxelbox_sides(),
+            self.collides_with_player(player_1) => VoxelboxSide::Left,
+            self.collides_with_player(player_2) => VoxelboxSide::Right,
+        }
+    }
+
+    pub fn change_direction(&mut self, colliding_sides: &[VoxelboxSide]) {
+        if colliding_sides.contains(&VoxelboxSide::Left)
+            || colliding_sides.contains(&VoxelboxSide::Right)
+        {
+            self.direction.0 = -(self.direction.0)
+        }
+
+        if colliding_sides.contains(&VoxelboxSide::Top)
+            || colliding_sides.contains(&VoxelboxSide::Bottom)
+        {
+            self.direction.1 = -(self.direction.1)
+        }
+
+        if colliding_sides.contains(&VoxelboxSide::Front)
+            || colliding_sides.contains(&VoxelboxSide::Back)
+        {
+            self.direction.2 = -(self.direction.2)
+        }
     }
 
     pub fn draw(&self, voxelbox: &mut voxelbox::Voxelbox) {
@@ -97,8 +119,8 @@ impl Default for Ball {
                 voxelbox::DEEPTH / 2,
             ),
             color: Rgb::red(),
-            //direction: (2, 0, 1),
-            direction: (3, 0, 1),
+            //direction: (0, 2, 1),
+            direction: (1, 2, 0),
         }
     }
 }

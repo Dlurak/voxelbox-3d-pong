@@ -1,5 +1,6 @@
 mod color;
 mod game;
+mod macros;
 mod odd;
 mod prelude;
 mod voxelbox;
@@ -54,9 +55,14 @@ fn handle_input(
             let mut ball = ball.lock().unwrap();
             let player_1 = player_1.lock().unwrap();
             let player_2 = player_2.lock().unwrap();
-            if !ball.collides(&player_1, &player_2) {
-                ball.apply_movement();
+
+            let colliding_sides = ball.colliding_sides(&player_1, &player_2);
+
+            if !colliding_sides.is_empty() {
+                ball.change_direction(&colliding_sides);
             }
+
+            ball.apply_movement();
         }
     }
 }
