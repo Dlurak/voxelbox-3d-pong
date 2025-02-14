@@ -119,8 +119,8 @@ impl Default for Ball {
                 voxelbox::DEEPTH / 2,
             ),
             color: Rgb::red(),
-            direction: (1, 0, 0),
-            //direction: (1, 2, 0),
+            //direction: (1, 0, 0),
+            direction: (1, 2, 0),
         }
     }
 }

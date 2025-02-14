@@ -62,12 +62,11 @@ fn handle_player_axis(
 }
 
 pub fn handle_input(
-    player_1: Arc<Mutex<Player>>,
-    player_2: Arc<Mutex<Player>>,
+    player_1: (Arc<Mutex<Player>>, f32),
+    player_2: (Arc<Mutex<Player>>, f32),
     ball: Arc<Mutex<Ball>>,
     gilrs: &mut Gilrs,
     gamepad_id: gilrs::GamepadId,
-    sensitivity: f32,
 ) {
     let mut last_moved_player1_x = Instant::now();
     let mut last_moved_player1_y = Instant::now();
@@ -83,16 +82,16 @@ pub fn handle_input(
             &gp,
             Axis::LeftStickX,
             last_moved_player1_x,
-            &player_1,
-            sensitivity,
+            &player_1.0,
+            player_1.1,
         )
         .unwrap_or(last_moved_player1_x);
         last_moved_player1_y = handle_player_axis(
             &gp,
             Axis::LeftStickY,
             last_moved_player1_y,
-            &player_1,
-            sensitivity,
+            &player_1.0,
+            player_1.1,
         )
         .unwrap_or(last_moved_player1_y);
 
@@ -100,16 +99,16 @@ pub fn handle_input(
             &gp,
             Axis::RightStickX,
             last_moved_player2_x,
-            &player_2,
-            sensitivity,
+            &player_2.0,
+            player_2.1,
         )
         .unwrap_or(last_moved_player2_x);
         last_moved_player2_y = handle_player_axis(
             &gp,
             Axis::RightStickY,
             last_moved_player2_y,
-            &player_2,
-            sensitivity,
+            &player_2.0,
+            player_2.1,
         )
         .unwrap_or(last_moved_player2_y);
 
@@ -119,7 +118,7 @@ pub fn handle_input(
             let mut ball = ball.lock().unwrap();
 
             let colliding_sides =
-                ball.colliding_sides(&player_1.lock().unwrap(), &player_2.lock().unwrap());
+                ball.colliding_sides(&player_1.0.lock().unwrap(), &player_2.0.lock().unwrap());
             ball.change_direction(&colliding_sides);
             ball.apply_movement();
         }

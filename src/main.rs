@@ -54,8 +54,10 @@ fn sensitivity_parser(s: &str) -> Result<f32, String> {
 
 #[derive(Parser)]
 struct Args {
-    #[arg(short, long, default_value_t = 2.5, value_parser = sensitivity_parser)]
-    sensitivity: f32,
+    #[arg(long, default_value_t = 2.5, value_parser = sensitivity_parser)]
+    sensitivity_p1: f32,
+    #[arg(long, default_value_t = 2.5, value_parser = sensitivity_parser)]
+    sensitivity_p2: f32,
     #[arg(long, default_value_t = String::from("127.0.0.1"))]
     ip: String,
     #[arg(long, default_value_t = 5005, value_parser = clap::value_parser!(u16).range(1..))]
@@ -80,12 +82,11 @@ fn main() {
 
     let input_thread = thread::spawn(move || {
         handle_input(
-            player_1_clone,
-            player_2_clone,
+            (player_1_clone, args.sensitivity_p1),
+            (player_2_clone, args.sensitivity_p1),
             ball_clone,
             &mut gilrs,
             gp_id,
-            args.sensitivity,
         )
     });
     let render_thread =
