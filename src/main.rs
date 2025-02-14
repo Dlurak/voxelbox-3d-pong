@@ -54,9 +54,9 @@ fn sensitivity_parser(s: &str) -> Result<f32, String> {
 
 #[derive(Parser)]
 struct Args {
-    #[arg(long, default_value_t = 2.5, value_parser = sensitivity_parser)]
+    #[arg(long, default_value_t = 1.5, value_parser = sensitivity_parser)]
     sensitivity_p1: f32,
-    #[arg(long, default_value_t = 2.5, value_parser = sensitivity_parser)]
+    #[arg(long, default_value_t = 1.5, value_parser = sensitivity_parser)]
     sensitivity_p2: f32,
     #[arg(long, default_value_t = String::from("127.0.0.1"))]
     ip: String,

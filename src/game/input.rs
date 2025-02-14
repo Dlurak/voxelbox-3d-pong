@@ -113,9 +113,9 @@ pub fn handle_input(
         .unwrap_or(last_moved_player2_y);
 
         let now = Instant::now();
-        if (now - last_moved_ball).as_millis() >= 1_000 {
+        let mut ball = ball.lock().unwrap();
+        if now - last_moved_ball >= ball.movement_intervall {
             last_moved_ball = now;
-            let mut ball = ball.lock().unwrap();
 
             let colliding_sides =
                 ball.colliding_sides(&player_1.0.lock().unwrap(), &player_2.0.lock().unwrap());

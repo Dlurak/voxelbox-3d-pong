@@ -1,9 +1,12 @@
+use std::time::Duration;
+
 use crate::{color::Rgb, dynamic_vec, game::player::Player, odd::Odd, plus_minus, voxelbox};
 
 use super::pad;
 
 const SIZE: Odd<u8> = Odd::<u8>::new_panics(3);
 const PADDING: u8 = (SIZE.value() - 1) / 2;
+const COLLISIONS_UNTIL_SPEED_INC: u8 = 10;
 
 #[derive(PartialEq, Eq, Debug)]
 pub enum VoxelboxSide {
@@ -19,6 +22,8 @@ pub struct Ball {
     position: (u8, u8, u8),
     color: Rgb,
     direction: (i8, i8, i8),
+    collisions_since_speed_inc: u8,
+    pub movement_intervall: Duration,
 }
 
 impl Ball {
@@ -65,31 +70,48 @@ impl Ball {
         })
     }
 
-    pub fn colliding_sides(&self, player_1: &Player, player_2: &Player) -> Vec<VoxelboxSide> {
-        dynamic_vec! {self.colliding_voxelbox_sides(),
+    pub fn colliding_sides(&mut self, player_1: &Player, player_2: &Player) -> Vec<VoxelboxSide> {
+        let sides = dynamic_vec! {self.colliding_voxelbox_sides(),
             self.collides_with_player(player_1) => VoxelboxSide::Left,
             self.collides_with_player(player_2) => VoxelboxSide::Right,
+        };
+
+        if !sides.is_empty() {
+            self.collisions_since_speed_inc += 1;
+            if self.collisions_since_speed_inc >= COLLISIONS_UNTIL_SPEED_INC {
+                self.collisions_since_speed_inc = 0;
+                let current_ms = self.movement_intervall.as_millis() as f64;
+                let decrease = current_ms.sqrt() * 10.0;
+                let new_ms = ((current_ms as i128) - (decrease.round() as i128)).max(125) as u64;
+                self.movement_intervall = Duration::from_millis(new_ms);
+            }
         }
+
+        sides
     }
 
     pub fn change_direction(&mut self, colliding_sides: &[VoxelboxSide]) {
-        if colliding_sides.contains(&VoxelboxSide::Left)
-            || colliding_sides.contains(&VoxelboxSide::Right)
-        {
-            self.direction.0 = -(self.direction.0)
+        let mut direction = self.direction;
+        let x = colliding_sides.contains(&VoxelboxSide::Left)
+            || colliding_sides.contains(&VoxelboxSide::Right);
+        let y = colliding_sides.contains(&VoxelboxSide::Top)
+            || colliding_sides.contains(&VoxelboxSide::Bottom);
+        let z = colliding_sides.contains(&VoxelboxSide::Front)
+            || colliding_sides.contains(&VoxelboxSide::Back);
+
+        if x {
+            direction.0 = -(direction.0)
         }
 
-        if colliding_sides.contains(&VoxelboxSide::Top)
-            || colliding_sides.contains(&VoxelboxSide::Bottom)
-        {
-            self.direction.1 = -(self.direction.1)
+        if y {
+            direction.1 = -(direction.1)
         }
 
-        if colliding_sides.contains(&VoxelboxSide::Front)
-            || colliding_sides.contains(&VoxelboxSide::Back)
-        {
-            self.direction.2 = -(self.direction.2)
+        if z {
+            direction.2 = -(direction.2)
         }
+
+        self.direction = direction;
     }
 
     pub fn draw(&self, voxelbox: &mut voxelbox::Voxelbox) {
@@ -119,8 +141,9 @@ impl Default for Ball {
                 voxelbox::DEEPTH / 2,
             ),
             color: Rgb::red(),
-            //direction: (1, 0, 0),
             direction: (1, 2, 0),
+            collisions_since_speed_inc: 0,
+            movement_intervall: Duration::from_millis(800),
         }
     }
 }

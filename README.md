@@ -9,7 +9,7 @@ It can be found on [codeberg](https://codeberg.org/VoxelBox/voxelbox).
 
 - Use a real voxelbox or use the [simulator](https://codeberg.org/VoxelBox/voxelbox).
     - In `main.rs` you need to adjust the ip and port to match your dev setup
-- Connect a gaempad, I use a Dualshock 4 but all should work fine
+- Connect a gamepad, I use a Dualshock 4 but all should work fine
 
 ### NixOS
 
@@ -32,6 +32,7 @@ nix develop
     - [x] Moves
     - [x] Detects collisions
     - [x] Changes direction
+    - [x] Accelerate it after some collisions
     - [ ] Prevent the same direction again after orthogonal collisions
 - Game:
     - [ ] Keep track of points
