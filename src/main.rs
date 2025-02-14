@@ -5,67 +5,17 @@ mod odd;
 mod prelude;
 mod voxelbox;
 
-use game::input::handle_player_axis;
-use gilrs::{ev::Axis, Gilrs};
+use clap::Parser;
+use game::input::handle_input;
+use gilrs::Gilrs;
 use prelude::*;
 use std::sync::{Arc, LazyLock, Mutex};
 use std::thread;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 const FPS: f32 = 10.0;
-const IP: &str = "127.0.0.1";
-const PORT: u16 = 5005;
 static RENDER_FRAME_DURATION: LazyLock<Duration> =
     LazyLock::new(|| Duration::from_secs_f32(1.0 / FPS));
-
-fn handle_input(
-    player_1: Arc<Mutex<game::player::Player>>,
-    player_2: Arc<Mutex<game::player::Player>>,
-    ball: Arc<Mutex<game::ball::Ball>>,
-    gilrs: &mut Gilrs,
-    gamepad_id: gilrs::GamepadId,
-) {
-    let mut last_moved_player1_x = Instant::now();
-    let mut last_moved_player1_y = Instant::now();
-    let mut last_moved_player2_x = Instant::now();
-    let mut last_moved_player2_y = Instant::now();
-    let mut last_moved_ball = Instant::now();
-
-    loop {
-        gilrs.next_event();
-        let gp = gilrs.gamepad(gamepad_id);
-
-        last_moved_player1_x =
-            handle_player_axis(&gp, Axis::LeftStickX, last_moved_player1_x, &player_1)
-                .unwrap_or(last_moved_player1_x);
-        last_moved_player1_y =
-            handle_player_axis(&gp, Axis::LeftStickY, last_moved_player1_y, &player_1)
-                .unwrap_or(last_moved_player1_y);
-
-        last_moved_player2_x =
-            handle_player_axis(&gp, Axis::RightStickX, last_moved_player2_x, &player_2)
-                .unwrap_or(last_moved_player2_x);
-        last_moved_player2_y =
-            handle_player_axis(&gp, Axis::RightStickY, last_moved_player2_y, &player_2)
-                .unwrap_or(last_moved_player2_y);
-
-        let now = Instant::now();
-        if (now - last_moved_ball).as_millis() >= 1_000 {
-            last_moved_ball = now;
-            let mut ball = ball.lock().unwrap();
-            let player_1 = player_1.lock().unwrap();
-            let player_2 = player_2.lock().unwrap();
-
-            let colliding_sides = ball.colliding_sides(&player_1, &player_2);
-
-            if !colliding_sides.is_empty() {
-                ball.change_direction(&colliding_sides);
-            }
-
-            ball.apply_movement();
-        }
-    }
-}
 
 fn render_loop(
     voxelbox: Arc<Mutex<voxelbox::Voxelbox>>,
@@ -93,11 +43,32 @@ fn render_loop(
     }
 }
 
+fn sensitivity_parser(s: &str) -> Result<f32, String> {
+    let num: f32 = s.parse().map_err(|_| format!("`{s}` isn't a number"))?;
+    if num > 0.0 {
+        Ok(num)
+    } else {
+        Err(format!("{s} isn't bigger than 0"))
+    }
+}
+
+#[derive(Parser)]
+struct Args {
+    #[arg(short, long, default_value_t = 2.5, value_parser = sensitivity_parser)]
+    sensitivity: f32,
+    #[arg(long, default_value_t = String::from("127.0.0.1"))]
+    ip: String,
+    #[arg(long, default_value_t = 5005, value_parser = clap::value_parser!(u16).range(1..))]
+    port: u16,
+}
+
 fn main() {
+    let args = Args::parse();
+
     let mut gilrs = Gilrs::new().expect("Failed to initialize gilrs, needed to get controllers");
     let gp_id = gilrs.gamepads().next().expect("Please connect a gamepad").0;
 
-    let voxelbox = Arc::new(Mutex::new(voxelbox::Voxelbox::new(IP, PORT)));
+    let voxelbox = Arc::new(Mutex::new(voxelbox::Voxelbox::new(args.ip, args.port)));
     let player_1 = Arc::new(Mutex::new(game::player::Player::player_1()));
     let player_2 = Arc::new(Mutex::new(game::player::Player::player_2()));
     let ball = Arc::new(Mutex::new(game::ball::Ball::default()));
@@ -114,6 +85,7 @@ fn main() {
             ball_clone,
             &mut gilrs,
             gp_id,
+            args.sensitivity,
         )
     });
     let render_thread =

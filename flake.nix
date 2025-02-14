@@ -27,8 +27,8 @@
               rustPackages.clippy
               rust-analyzer
               bacon
-              libudev-zero # Add libudev to the build inputs
-              pkg-config # Ensure pkg-config is available
+              libudev-zero
+              pkg-config
             ];
             RUST_SRC_PATH = rustPlatform.rustLibSrc;
           };

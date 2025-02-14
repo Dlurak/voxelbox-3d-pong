@@ -21,15 +21,26 @@ nix develop
 
 ## Progress/Todo
 
-- [x] Controller Input:
+- Controller Input:
     - [x] No noticeable delay
     - [x] Natural speed
     - [x] Higher speed for bigger controller inputs
-- [ ] Ball:
+    - [ ] Multiple controllers
+    - [ ] Independent sensitivities for player 1 and 2
+- Ball:
     - [x] Renders
     - [x] Moves
     - [x] Detects collisions
-    - [ ] Changes direction
+    - [x] Changes direction
+    - [ ] Prevent the same direction again after orthogonal collisions
+- Game:
+    - [ ] Keep track of points
+    - [ ] Determine winners
+    - [ ] Keep long term stats on the better color (optional cargo flag)
+    - [ ] Dynamic colors on start up
+- General:
+    - [ ] Refactoring
+        - Maybe move things like the `Odd` struct in a standalone crate
 
 ## Thanks <3
 

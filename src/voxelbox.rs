@@ -32,16 +32,19 @@ pub enum VoxelBoxSendError {
 }
 
 #[derive(Clone, PartialEq, Eq, Debug)]
-pub struct Voxelbox<'a> {
-    ip: &'a str,
+pub struct Voxelbox {
+    ip: String,
     port: u16,
     leds: Leds,
 }
 
-impl<'a> Voxelbox<'a> {
-    pub const fn new(ip: &'a str, port: u16) -> Self {
+impl Voxelbox {
+    pub fn new<T>(ip: T, port: u16) -> Self
+    where
+        T: Into<String>,
+    {
         Self {
-            ip,
+            ip: ip.into(),
             port,
             leds: Leds::new(Rgb::black()),
         }
