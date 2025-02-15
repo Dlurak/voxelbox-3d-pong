@@ -1,4 +1,5 @@
-use std::time::Duration;
+use rand::Rng;
+use std::{num::NonZero, time::Duration};
 
 use crate::{color::Rgb, dynamic_vec, game::player::Player, odd::Odd, plus_minus, voxelbox};
 
@@ -6,10 +7,12 @@ use super::pad;
 
 const SIZE: Odd<u8> = Odd::<u8>::new_panics(3);
 const PADDING: u8 = (SIZE.value() - 1) / 2;
-const COLLISIONS_UNTIL_SPEED_INC: u8 = 10;
+const COLLISIONS_UNTIL_SPEED_INC: u8 = 1;
+const MAX_BALL_SLEEP_TIME: f64 = 800.0;
+const MIN_BALL_SLEEP_TIME: f64 = 300.0;
 
 #[derive(PartialEq, Eq, Debug)]
-pub enum VoxelboxSide {
+pub enum CollisionSide {
     Left,
     Right,
     Top,
@@ -21,14 +24,14 @@ pub enum VoxelboxSide {
 pub struct Ball {
     position: (u8, u8, u8),
     color: Rgb,
-    direction: (i8, i8, i8),
+    direction: (NonZero<i8>, i8, i8),
     collisions_since_speed_inc: u8,
     pub movement_intervall: Duration,
 }
 
 impl Ball {
     pub fn apply_movement(&mut self) {
-        let x = (((self.position.0 as i8) + self.direction.0) as u8)
+        let x = (((self.position.0 as i8) + self.direction.0.get()) as u8)
             .clamp(PADDING, voxelbox::WIDTH - 1 - PADDING);
         let y = (((self.position.1 as i8) + self.direction.1) as u8)
             .clamp(PADDING, voxelbox::HEIGHT - 1 - PADDING);
@@ -37,16 +40,16 @@ impl Ball {
         self.position = (x, y, z);
     }
 
-    fn colliding_voxelbox_sides(&self) -> Vec<VoxelboxSide> {
+    fn colliding_voxelbox_sides(&self) -> Vec<CollisionSide> {
         let (x, y, z) = self.position;
 
         dynamic_vec! {
-            x == PADDING => VoxelboxSide::Left,
-            x == voxelbox::WIDTH - 1 - PADDING => VoxelboxSide::Right,
-            y == PADDING => VoxelboxSide::Top,
-            y == voxelbox::HEIGHT - 1 - PADDING => VoxelboxSide::Bottom,
-            z == PADDING => VoxelboxSide::Front,
-            z == voxelbox::DEEPTH - 1 - PADDING => VoxelboxSide::Back,
+            x == PADDING => CollisionSide::Left,
+            x == voxelbox::WIDTH - 1 - PADDING => CollisionSide::Right,
+            y == PADDING => CollisionSide::Top,
+            y == voxelbox::HEIGHT - 1 - PADDING => CollisionSide::Bottom,
+            z == PADDING => CollisionSide::Front,
+            z == voxelbox::DEEPTH - 1 - PADDING => CollisionSide::Back,
         }
     }
 
@@ -70,10 +73,10 @@ impl Ball {
         })
     }
 
-    pub fn colliding_sides(&mut self, player_1: &Player, player_2: &Player) -> Vec<VoxelboxSide> {
+    pub fn colliding_sides(&mut self, player_1: &Player, player_2: &Player) -> Vec<CollisionSide> {
         let sides = dynamic_vec! {self.colliding_voxelbox_sides(),
-            self.collides_with_player(player_1) => VoxelboxSide::Left,
-            self.collides_with_player(player_2) => VoxelboxSide::Right,
+            self.collides_with_player(player_1) => CollisionSide::Left,
+            self.collides_with_player(player_2) => CollisionSide::Right,
         };
 
         if !sides.is_empty() {
@@ -81,8 +84,8 @@ impl Ball {
             if self.collisions_since_speed_inc >= COLLISIONS_UNTIL_SPEED_INC {
                 self.collisions_since_speed_inc = 0;
                 let current_ms = self.movement_intervall.as_millis() as f64;
-                let decrease = current_ms.sqrt() * 10.0;
-                let new_ms = ((current_ms as i128) - (decrease.round() as i128)).max(125) as u64;
+                let decrease = (current_ms - MIN_BALL_SLEEP_TIME) / 3.0;
+                let new_ms = (current_ms - decrease) as u64;
                 self.movement_intervall = Duration::from_millis(new_ms);
             }
         }
@@ -90,25 +93,35 @@ impl Ball {
         sides
     }
 
-    pub fn change_direction(&mut self, colliding_sides: &[VoxelboxSide]) {
+    pub fn change_direction(&mut self, colliding_sides: &[CollisionSide]) {
         let mut direction = self.direction;
-        let x = colliding_sides.contains(&VoxelboxSide::Left)
-            || colliding_sides.contains(&VoxelboxSide::Right);
-        let y = colliding_sides.contains(&VoxelboxSide::Top)
-            || colliding_sides.contains(&VoxelboxSide::Bottom);
-        let z = colliding_sides.contains(&VoxelboxSide::Front)
-            || colliding_sides.contains(&VoxelboxSide::Back);
+        let mut rng = rand::rng();
+        let x_collides = colliding_sides.contains(&CollisionSide::Left)
+            || colliding_sides.contains(&CollisionSide::Right);
+        let y_collides = colliding_sides.contains(&CollisionSide::Top)
+            || colliding_sides.contains(&CollisionSide::Bottom);
+        let z_collides = colliding_sides.contains(&CollisionSide::Front)
+            || colliding_sides.contains(&CollisionSide::Back);
 
-        if x {
-            direction.0 = -(direction.0)
+        if x_collides {
+            direction.0 = -(direction.0);
         }
 
-        if y {
-            direction.1 = -(direction.1)
+        if y_collides {
+            direction.1 = -(direction.1);
         }
 
-        if z {
-            direction.2 = -(direction.2)
+        if z_collides {
+            direction.2 = -(direction.2);
+        }
+
+        if x_collides || z_collides || y_collides {
+            if rng.random_bool(0.4) && direction.1 == 0 {
+                direction.1 += if rng.random_bool(0.5) { 1 } else { -1 };
+            }
+            if rng.random_bool(0.4) && direction.2 == 0 {
+                direction.2 += if rng.random_bool(0.5) { 1 } else { -1 };
+            }
         }
 
         self.direction = direction;
@@ -141,9 +154,10 @@ impl Default for Ball {
                 voxelbox::DEEPTH / 2,
             ),
             color: Rgb::red(),
-            direction: (1, 2, 0),
+            //direction: (NonZero::new(1).unwrap(), 2, 0),
+            direction: (NonZero::new(1).unwrap(), 0, 0),
             collisions_since_speed_inc: 0,
-            movement_intervall: Duration::from_millis(800),
+            movement_intervall: Duration::from_millis(MAX_BALL_SLEEP_TIME.round() as u64),
         }
     }
 }

@@ -1,4 +1,4 @@
-#[derive(Clone, Copy, Debug, Hash)]
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub struct Odd<T>(T);
 
 macro_rules! impl_odd {
@@ -31,6 +31,17 @@ macro_rules! impl_odd {
         impl From<Odd<$ty>> for $ty {
             fn from(value: Odd<$ty>) -> Self {
                 value.0
+            }
+        }
+
+        impl TryFrom<$ty> for Odd<$ty> {
+            type Error = ();
+            fn try_from(value: $ty) -> Result<Self, Self::Error> {
+                if value % 2 == 1 {
+                    Ok(Self(value))
+                } else {
+                    Err(())
+                }
             }
         }
 
@@ -81,3 +92,15 @@ impl_odd!(i32);
 impl_odd!(i64);
 impl_odd!(i128);
 impl_odd!(isize);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_odd() {
+        assert_eq!(Odd::<u32>::new(3), Some(Odd(3 as u32)));
+        assert_eq!(Odd::<u32>::new(2), None);
+        assert_eq!(Odd::<u32>::new_panics(3).value(), 3);
+    }
+}

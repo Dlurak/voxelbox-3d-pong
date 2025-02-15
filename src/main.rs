@@ -1,5 +1,6 @@
 mod color;
 mod game;
+mod log;
 mod macros;
 mod odd;
 mod prelude;
@@ -8,6 +9,7 @@ mod voxelbox;
 use clap::Parser;
 use game::input::handle_input;
 use gilrs::Gilrs;
+use log::Severity;
 use prelude::*;
 use std::sync::{Arc, LazyLock, Mutex};
 use std::thread;
@@ -32,14 +34,14 @@ fn render_loop(
             .lock()
             .unwrap()
             .draw_pad(&mut vbox)
-            .log("Unable to draw player 1");
+            .log(Severity::Warning, "Unable to draw player 1");
         player_2
             .lock()
             .unwrap()
             .draw_pad(&mut vbox)
-            .log("Unable to draw player 2");
+            .log(Severity::Warning, "Unable to draw player 2");
         ball.lock().unwrap().draw(&mut vbox);
-        vbox.send().log("Could not send data");
+        vbox.send().log(Severity::Warning, "Could not send pixel-data to Voxelbox");
     }
 }
 
@@ -68,7 +70,14 @@ fn main() {
     let args = Args::parse();
 
     let mut gilrs = Gilrs::new().expect("Failed to initialize gilrs, needed to get controllers");
-    let gp_id = gilrs.gamepads().next().expect("Please connect a gamepad").0;
+    let gp_id = gilrs
+        .gamepads()
+        .next()
+        .unwrap_or_else(|| {
+            log!(Critical, "Plese connect a gampepad");
+            std::process::exit(1);
+        })
+        .0;
 
     let voxelbox = Arc::new(Mutex::new(voxelbox::Voxelbox::new(args.ip, args.port)));
     let player_1 = Arc::new(Mutex::new(game::player::Player::player_1()));
