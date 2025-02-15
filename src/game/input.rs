@@ -34,6 +34,7 @@ fn handle_player_axis(
     last_moved: Instant,
     player: &Arc<Mutex<Player>>,
     sensitivity: f32,
+    reverse: bool,
 ) -> Option<Instant> {
     let axis_value = gp.value(axis);
 
@@ -42,7 +43,7 @@ fn handle_player_axis(
     }
 
     let movement_size = axis_value.signum() as i16;
-    let movement_size = if axis == Axis::RightStickX {
+    let movement_size = if reverse {
         movement_size
     } else {
         -movement_size
@@ -66,7 +67,7 @@ pub fn handle_input(
     player_2: (Arc<Mutex<Player>>, f32),
     ball: Arc<Mutex<Ball>>,
     gilrs: &mut Gilrs,
-    gamepad_id: gilrs::GamepadId,
+    gamepad_id: (gilrs::GamepadId, Option<gilrs::GamepadId>),
 ) {
     let mut last_moved_player1_x = Instant::now();
     let mut last_moved_player1_y = Instant::now();
@@ -76,7 +77,8 @@ pub fn handle_input(
 
     loop {
         gilrs.next_event();
-        let gp = gilrs.gamepad(gamepad_id);
+        let gp = gilrs.gamepad(gamepad_id.0);
+        let gp_2 = gamepad_id.1.map(|id| gilrs.gamepad(id));
 
         last_moved_player1_x = handle_player_axis(
             &gp,
@@ -84,6 +86,7 @@ pub fn handle_input(
             last_moved_player1_x,
             &player_1.0,
             player_1.1,
+            false,
         )
         .unwrap_or(last_moved_player1_x);
         last_moved_player1_y = handle_player_axis(
@@ -92,23 +95,37 @@ pub fn handle_input(
             last_moved_player1_y,
             &player_1.0,
             player_1.1,
+            false,
         )
         .unwrap_or(last_moved_player1_y);
 
+        let p2_own_gamepad = gp_2.is_some();
+        let p2_x_stick = if p2_own_gamepad {
+            Axis::LeftStickX
+        } else {
+            Axis::RightStickX
+        };
+        let p2_y_stick = if p2_own_gamepad {
+            Axis::LeftStickY
+        } else {
+            Axis::RightStickY
+        };
         last_moved_player2_x = handle_player_axis(
-            &gp,
-            Axis::RightStickX,
+            &gp_2.unwrap_or(gp),
+            p2_x_stick,
             last_moved_player2_x,
             &player_2.0,
             player_2.1,
+            true,
         )
         .unwrap_or(last_moved_player2_x);
         last_moved_player2_y = handle_player_axis(
-            &gp,
-            Axis::RightStickY,
+            &gp_2.unwrap_or(gp),
+            p2_y_stick,
             last_moved_player2_y,
             &player_2.0,
             player_2.1,
+            false,
         )
         .unwrap_or(last_moved_player2_y);
 

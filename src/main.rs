@@ -41,7 +41,8 @@ fn render_loop(
             .draw_pad(&mut vbox)
             .log(Severity::Warning, "Unable to draw player 2");
         ball.lock().unwrap().draw(&mut vbox);
-        vbox.send().log(Severity::Warning, "Could not send pixel-data to Voxelbox");
+        vbox.send()
+            .log(Severity::Warning, "Could not send pixel-data to Voxelbox");
     }
 }
 
@@ -70,14 +71,23 @@ fn main() {
     let args = Args::parse();
 
     let mut gilrs = Gilrs::new().expect("Failed to initialize gilrs, needed to get controllers");
-    let gp_id = gilrs
-        .gamepads()
+    let mut gamepads = gilrs.gamepads();
+    let gp_id = gamepads
         .next()
         .unwrap_or_else(|| {
             log!(Critical, "Plese connect a gampepad");
             std::process::exit(1);
         })
         .0;
+    let gp_id_2 = gamepads.next().map(|v| v.0);
+    match gp_id_2 {
+        Some(_) => {
+            log!(Log, "Both player have a own gamepad");
+        }
+        None => {
+            log!(Log, "Both player share one gamepad");
+        }
+    }
 
     let voxelbox = Arc::new(Mutex::new(voxelbox::Voxelbox::new(args.ip, args.port)));
     let player_1 = Arc::new(Mutex::new(game::player::Player::player_1()));
@@ -95,7 +105,7 @@ fn main() {
             (player_2_clone, args.sensitivity_p1),
             ball_clone,
             &mut gilrs,
-            gp_id,
+            (gp_id, gp_id_2),
         )
     });
     let render_thread =

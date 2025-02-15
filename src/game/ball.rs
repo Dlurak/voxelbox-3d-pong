@@ -65,7 +65,7 @@ impl Ball {
             return false;
         }
 
-        pad::DRAWING_DELTAS.iter().any(|(y_offset, z_offset)| {
+        (*pad::DRAWING_DELTAS).iter().any(|(y_offset, z_offset)| {
             let pad_y = player_y as i8 + y_offset;
             let pad_z = player_z as i8 + z_offset;
 

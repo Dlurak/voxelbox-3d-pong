@@ -66,7 +66,7 @@ impl Player {
     }
 
     pub fn inc_x(&mut self, x: i16) {
-        let padding = (super::pad::WIDTH - 1) / 2;
+        let padding = (super::pad::SIZE - 1) / 2;
         let lower_limit: i16 = padding.into();
         let upper_limit: i16 = (voxelbox::DEEPTH - 1 - padding).into();
 
@@ -74,7 +74,7 @@ impl Player {
     }
 
     pub fn inc_y(&mut self, y: i16) {
-        let padding = (super::pad::HEIGHT - 1) / 2;
+        let padding = (super::pad::SIZE - 1) / 2;
         let lower_limit: i16 = padding.into();
         let upper_limit: i16 = (voxelbox::HEIGHT - 1 - padding).into();
 
