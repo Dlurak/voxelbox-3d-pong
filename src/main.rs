@@ -9,46 +9,13 @@ mod prelude;
 mod voxelbox;
 
 use clap::Parser;
-use game::input::handle_input;
+use game::{input::handle_input, render_loop};
 use gilrs::Gilrs;
 use log::Severity;
-use prelude::*;
 use std::{
-    sync::{Arc, LazyLock, Mutex},
+    sync::{Arc, Mutex},
     thread,
-    time::Duration,
 };
-
-const FPS: f32 = 10.0;
-static RENDER_FRAME_DURATION: LazyLock<Duration> =
-    LazyLock::new(|| Duration::from_secs_f32(1.0 / FPS));
-
-fn render_loop(
-    voxelbox: &Arc<Mutex<voxelbox::Voxelbox>>,
-    player_1: &Arc<Mutex<game::player::Player>>,
-    player_2: &Arc<Mutex<game::player::Player>>,
-    ball: &Arc<Mutex<game::ball::Ball>>,
-) {
-    loop {
-        thread::sleep(*RENDER_FRAME_DURATION);
-
-        let mut vbox = voxelbox.lock().unwrap();
-        vbox.reset_leds();
-        player_1
-            .lock()
-            .unwrap()
-            .draw_pad(&mut vbox)
-            .log(Severity::Warning, "Unable to draw player 1");
-        player_2
-            .lock()
-            .unwrap()
-            .draw_pad(&mut vbox)
-            .log(Severity::Warning, "Unable to draw player 2");
-        ball.lock().unwrap().draw(&mut vbox);
-        vbox.send()
-            .log(Severity::Warning, "Could not send pixel-data to Voxelbox");
-    }
-}
 
 fn main() {
     let args = cli::Args::parse();

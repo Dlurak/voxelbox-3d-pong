@@ -26,6 +26,8 @@ pub struct Args {
     /// The number of points needed to win
     #[arg(
         long,
+        alias = "winning",
+        visible_alias = "win",
         default_value_t = NonZero::new(5).unwrap()
     )]
     pub winning_points: NonZero<u8>,
@@ -43,7 +45,6 @@ pub struct Args {
     )]
     pub port: u16,
 }
-
 
 fn sensitivity_parser(s: &str) -> Result<Positive<f32>, String> {
     s.parse()

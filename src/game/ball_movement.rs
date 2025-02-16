@@ -45,7 +45,7 @@ pub fn handle_ball_movement_and_score(
 pub fn update_game_state_and_reset(
     player: &state::Player,
     state: &mut state::GameState,
-winning_points: NonZero<u8>,
+    winning_points: NonZero<u8>,
 ) -> (Player, Player, Ball) {
     state.score(player);
     log!(Log, "{} Scored ({})", player, state.fmt_score());
@@ -56,8 +56,8 @@ winning_points: NonZero<u8>,
     }
 
     let new_x = match player {
-        super::state::Player::Player1 => NonZero::new(1).unwrap(),
-        super::state::Player::Player2 => NonZero::new(-1).unwrap(),
+        state::Player::Player1 => NonZero::new(1).unwrap(),
+        state::Player::Player2 => NonZero::new(-1).unwrap(),
     };
     (
         Player::player_1(),

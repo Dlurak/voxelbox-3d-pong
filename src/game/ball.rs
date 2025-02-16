@@ -120,10 +120,12 @@ impl Ball {
         }
 
         if x_collides || z_collides || y_collides {
-            if rng.random_bool(0.4) && direction.1 == 0 {
+            let both_are_straight = direction.1 == 0 && direction.2 == 0;
+            let probability = if both_are_straight { 0.7 } else { 0.4 };
+            if rng.random_bool(probability) && direction.1 == 0 {
                 direction.1 += if rng.random_bool(0.5) { 1 } else { -1 };
             }
-            if rng.random_bool(0.4) && direction.2 == 0 {
+            if rng.random_bool(probability) && direction.2 == 0 {
                 direction.2 += if rng.random_bool(0.5) { 1 } else { -1 };
             }
         }
@@ -150,15 +152,8 @@ impl Ball {
 
     pub fn new_with_x(x: NonZero<i8>) -> Self {
         Self {
-            position: (
-                voxelbox::WIDTH / 2,
-                voxelbox::HEIGHT / 2,
-                voxelbox::DEEPTH / 2,
-            ),
-            color: Rgb::red(),
             direction: (x, 0, 0),
-            collisions_since_speed_inc: 0,
-            movement_intervall: Duration::from_millis(MAX_BALL_SLEEP_TIME.round() as u64),
+            ..Self::default()
         }
     }
 }
@@ -171,7 +166,7 @@ impl Default for Ball {
                 voxelbox::HEIGHT / 2,
                 voxelbox::DEEPTH / 2,
             ),
-            color: Rgb::red(),
+            color: Rgb::pink(),
             direction: (NonZero::new(1).unwrap(), 0, 0),
             collisions_since_speed_inc: 0,
             movement_intervall: Duration::from_millis(MAX_BALL_SLEEP_TIME.round() as u64),
