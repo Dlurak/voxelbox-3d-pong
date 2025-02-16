@@ -1,4 +1,9 @@
-use super::{ball::Ball, player::Player};
+use super::{
+    ball::Ball,
+    ball_movement::{handle_ball_movement_and_score, update_game_state_and_reset},
+    player::Player,
+    state::GameState,
+};
 use gilrs::{Axis, Gamepad, Gilrs};
 use std::{
     sync::{Arc, Mutex},
@@ -62,42 +67,83 @@ fn handle_player_axis(
     }
 }
 
+struct MovementTimestamps {
+    player_1: PlayerMovementTimestamps,
+    player_2: PlayerMovementTimestamps,
+    ball: Instant,
+}
+
+impl Default for MovementTimestamps {
+    fn default() -> Self {
+        Self {
+            player_1: PlayerMovementTimestamps::default(),
+            player_2: PlayerMovementTimestamps::default(),
+            ball: Instant::now(),
+        }
+    }
+}
+
+struct PlayerMovementTimestamps {
+    x: Instant,
+    y: Instant,
+}
+
+impl Default for PlayerMovementTimestamps {
+    fn default() -> Self {
+        Self {
+            x: Instant::now(),
+            y: Instant::now(),
+        }
+    }
+}
+
+fn update_player_movement(
+    gamepad: &gilrs::Gamepad,
+    player: &(Arc<Mutex<Player>>, f32),
+    movement: &mut PlayerMovementTimestamps,
+    additional_information: (Axis, bool, Axis),
+) {
+    movement.x = handle_player_axis(
+        gamepad,
+        additional_information.0,
+        movement.x,
+        &player.0,
+        player.1,
+        additional_information.1,
+    )
+    .unwrap_or(movement.x);
+    movement.y = handle_player_axis(
+        gamepad,
+        additional_information.2,
+        movement.y,
+        &player.0,
+        player.1,
+        false,
+    )
+    .unwrap_or(movement.y);
+}
+
 pub fn handle_input(
     player_1: (Arc<Mutex<Player>>, f32),
     player_2: (Arc<Mutex<Player>>, f32),
     ball: Arc<Mutex<Ball>>,
+    state: &mut GameState,
     gilrs: &mut Gilrs,
     gamepad_id: (gilrs::GamepadId, Option<gilrs::GamepadId>),
 ) {
-    let mut last_moved_player1_x = Instant::now();
-    let mut last_moved_player1_y = Instant::now();
-    let mut last_moved_player2_x = Instant::now();
-    let mut last_moved_player2_y = Instant::now();
-    let mut last_moved_ball = Instant::now();
+    let mut last_movements = MovementTimestamps::default();
 
     loop {
         gilrs.next_event();
         let gp = gilrs.gamepad(gamepad_id.0);
         let gp_2 = gamepad_id.1.map(|id| gilrs.gamepad(id));
 
-        last_moved_player1_x = handle_player_axis(
+        update_player_movement(
             &gp,
-            Axis::LeftStickX,
-            last_moved_player1_x,
-            &player_1.0,
-            player_1.1,
-            false,
-        )
-        .unwrap_or(last_moved_player1_x);
-        last_moved_player1_y = handle_player_axis(
-            &gp,
-            Axis::LeftStickY,
-            last_moved_player1_y,
-            &player_1.0,
-            player_1.1,
-            false,
-        )
-        .unwrap_or(last_moved_player1_y);
+            &player_1,
+            &mut last_movements.player_1,
+            (Axis::LeftStickX, false, Axis::LeftStickY),
+        );
 
         let p2_own_gamepad = gp_2.is_some();
         let p2_x_stick = if p2_own_gamepad {
@@ -110,34 +156,25 @@ pub fn handle_input(
         } else {
             Axis::RightStickY
         };
-        last_moved_player2_x = handle_player_axis(
+        update_player_movement(
             &gp_2.unwrap_or(gp),
-            p2_x_stick,
-            last_moved_player2_x,
-            &player_2.0,
-            player_2.1,
-            true,
-        )
-        .unwrap_or(last_moved_player2_x);
-        last_moved_player2_y = handle_player_axis(
-            &gp_2.unwrap_or(gp),
-            p2_y_stick,
-            last_moved_player2_y,
-            &player_2.0,
-            player_2.1,
-            false,
-        )
-        .unwrap_or(last_moved_player2_y);
+            &player_2,
+            &mut last_movements.player_2,
+            (p2_x_stick, true, p2_y_stick),
+        );
 
-        let now = Instant::now();
-        let mut ball = ball.lock().unwrap();
-        if now - last_moved_ball >= ball.movement_intervall {
-            last_moved_ball = now;
+        let scoring_player = handle_ball_movement_and_score(
+            &ball,
+            &player_1.0,
+            &player_2.0,
+            &mut last_movements.ball,
+        );
+        if let Some(p) = scoring_player {
+            let new_structs = update_game_state_and_reset(&p, state);
 
-            let colliding_sides =
-                ball.colliding_sides(&player_1.0.lock().unwrap(), &player_2.0.lock().unwrap());
-            ball.change_direction(&colliding_sides);
-            ball.apply_movement();
+            *player_1.0.lock().unwrap() = new_structs.0;
+            *player_2.0.lock().unwrap() = new_structs.1;
+            *ball.lock().unwrap() = new_structs.2;
         }
     }
 }

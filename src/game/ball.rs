@@ -19,6 +19,8 @@ pub enum CollisionSide {
     Bottom,
     Front,
     Back,
+    PlayerLeft,
+    PlayerRight,
 }
 
 pub struct Ball {
@@ -75,8 +77,8 @@ impl Ball {
 
     pub fn colliding_sides(&mut self, player_1: &Player, player_2: &Player) -> Vec<CollisionSide> {
         let sides = dynamic_vec! {self.colliding_voxelbox_sides(),
-            self.collides_with_player(player_1) => CollisionSide::Left,
-            self.collides_with_player(player_2) => CollisionSide::Right,
+            self.collides_with_player(player_1) => CollisionSide::PlayerLeft,
+            self.collides_with_player(player_2) => CollisionSide::PlayerRight,
         };
 
         if !sides.is_empty() {
@@ -97,7 +99,9 @@ impl Ball {
         let mut direction = self.direction;
         let mut rng = rand::rng();
         let x_collides = colliding_sides.contains(&CollisionSide::Left)
-            || colliding_sides.contains(&CollisionSide::Right);
+            || colliding_sides.contains(&CollisionSide::Right)
+            || colliding_sides.contains(&CollisionSide::PlayerLeft)
+            || colliding_sides.contains(&CollisionSide::PlayerRight);
         let y_collides = colliding_sides.contains(&CollisionSide::Top)
             || colliding_sides.contains(&CollisionSide::Bottom);
         let z_collides = colliding_sides.contains(&CollisionSide::Front)
@@ -143,6 +147,20 @@ impl Ball {
             }
         }
     }
+
+    pub fn new_with_x(x: NonZero<i8>) -> Self {
+        Self {
+            position: (
+                voxelbox::WIDTH / 2,
+                voxelbox::HEIGHT / 2,
+                voxelbox::DEEPTH / 2,
+            ),
+            color: Rgb::red(),
+            direction: (x, 0, 0),
+            collisions_since_speed_inc: 0,
+            movement_intervall: Duration::from_millis(MAX_BALL_SLEEP_TIME.round() as u64),
+        }
+    }
 }
 
 impl Default for Ball {
@@ -154,7 +172,6 @@ impl Default for Ball {
                 voxelbox::DEEPTH / 2,
             ),
             color: Rgb::red(),
-            //direction: (NonZero::new(1).unwrap(), 2, 0),
             direction: (NonZero::new(1).unwrap(), 0, 0),
             collisions_since_speed_inc: 0,
             movement_intervall: Duration::from_millis(MAX_BALL_SLEEP_TIME.round() as u64),

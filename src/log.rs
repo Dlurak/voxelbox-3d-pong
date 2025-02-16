@@ -12,7 +12,7 @@ impl Severity {
     pub fn prefix(&self) -> String {
         match self {
             Self::Success => Color::Green.bold().paint("[Success]"),
-            Self::Log => Color::White.bold().paint("[Log]"),
+            Self::Log => Color::Blue.bold().paint("[Log]"),
             Self::Warning => Color::Yellow.bold().paint("[Warn]"),
             Self::Critical => Color::Red.bold().paint("[Critical]"),
         }

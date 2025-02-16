@@ -20,10 +20,10 @@ static RENDER_FRAME_DURATION: LazyLock<Duration> =
     LazyLock::new(|| Duration::from_secs_f32(1.0 / FPS));
 
 fn render_loop(
-    voxelbox: Arc<Mutex<voxelbox::Voxelbox>>,
-    player_1: Arc<Mutex<game::player::Player>>,
-    player_2: Arc<Mutex<game::player::Player>>,
-    ball: Arc<Mutex<game::ball::Ball>>,
+    voxelbox: &Arc<Mutex<voxelbox::Voxelbox>>,
+    player_1: &Arc<Mutex<game::player::Player>>,
+    player_2: &Arc<Mutex<game::player::Player>>,
+    ball: &Arc<Mutex<game::ball::Ball>>,
 ) {
     loop {
         thread::sleep(*RENDER_FRAME_DURATION);
@@ -89,6 +89,8 @@ fn main() {
         }
     }
 
+    let mut game_state = game::state::GameState::default();
+
     let voxelbox = Arc::new(Mutex::new(voxelbox::Voxelbox::new(args.ip, args.port)));
     let player_1 = Arc::new(Mutex::new(game::player::Player::player_1()));
     let player_2 = Arc::new(Mutex::new(game::player::Player::player_2()));
@@ -104,12 +106,13 @@ fn main() {
             (player_1_clone, args.sensitivity_p1),
             (player_2_clone, args.sensitivity_p1),
             ball_clone,
+            &mut game_state,
             &mut gilrs,
             (gp_id, gp_id_2),
-        )
+        );
     });
     let render_thread =
-        thread::spawn(move || render_loop(voxelbox_clone, player_1, player_2, ball));
+        thread::spawn(move || render_loop(&voxelbox_clone, &player_1, &player_2, &ball));
 
     input_thread
         .join()
