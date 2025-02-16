@@ -1,3 +1,4 @@
+mod cli;
 mod color;
 mod game;
 mod log;
@@ -11,7 +12,6 @@ use clap::Parser;
 use game::input::handle_input;
 use gilrs::Gilrs;
 use log::Severity;
-use positive::Positive;
 use prelude::*;
 use std::{
     sync::{Arc, LazyLock, Mutex},
@@ -50,48 +50,8 @@ fn render_loop(
     }
 }
 
-fn sensitivity_parser(s: &str) -> Result<Positive<f32>, String> {
-    s.parse()
-        .map_err(|_| format!("{s} isn't a number"))
-        .and_then(|n| Positive::new(n).ok_or_else(|| format!("{s} is bigger than 0")))
-}
-
-#[derive(Parser)]
-#[command(version, about = "3d Pong on the Voxelbox", long_about = None)]
-struct Args {
-    /// Sensitivity of Player 1 (Green), controls paddle speed
-    #[arg(
-        long,
-        visible_alias = "sens-p1",
-        default_value_t = Positive::new(1.5).unwrap(),
-        value_parser = sensitivity_parser
-    )]
-    sensitivity_p1: Positive<f32>,
-    #[arg(
-        long,
-        visible_alias = "sens-p2",
-        default_value_t = Positive::new(1.5).unwrap(),
-        value_parser = sensitivity_parser
-    )]
-    /// Sensitivity of Player 2 (Yellow), controls paddle speed
-    sensitivity_p2: Positive<f32>,
-    /// IP-Address of the Voxelbox
-    #[arg(
-        long,
-        default_value_t = String::from("127.0.0.1"),
-    )]
-    ip: String,
-    /// Port of the Voxelbox
-    #[arg(
-        long,
-        default_value_t = 5005,
-        value_parser = clap::value_parser!(u16).range(1..)
-    )]
-    port: u16,
-}
-
 fn main() {
-    let args = Args::parse();
+    let args = cli::Args::parse();
 
     let mut gilrs = Gilrs::new().expect("Failed to initialize gilrs, needed to get controllers");
     let mut gamepads = gilrs.gamepads();
@@ -129,6 +89,7 @@ fn main() {
             &mut game_state,
             &mut gilrs,
             (gp_id, gp_id_2),
+            args.winning_points,
         );
     });
     let render_thread =

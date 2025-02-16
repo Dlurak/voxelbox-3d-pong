@@ -8,6 +8,7 @@ use super::{
 };
 use gilrs::{Axis, Gamepad, Gilrs};
 use std::{
+    num::NonZero,
     sync::{Arc, Mutex},
     time::{Duration, Instant},
 };
@@ -125,6 +126,14 @@ fn update_player_movement(
     .unwrap_or(movement.y);
 }
 
+const fn player_2_sticks(own_gamepad: bool) -> (Axis, Axis) {
+    if own_gamepad {
+        (Axis::LeftStickX, Axis::LeftStickY)
+    } else {
+        (Axis::RightStickX, Axis::RightStickY)
+    }
+}
+
 pub fn handle_input(
     player_1: (Arc<Mutex<Player>>, Positive<f32>),
     player_2: (Arc<Mutex<Player>>, Positive<f32>),
@@ -132,6 +141,7 @@ pub fn handle_input(
     state: &mut GameState,
     gilrs: &mut Gilrs,
     gamepad_id: (gilrs::GamepadId, Option<gilrs::GamepadId>),
+    winning_points: NonZero<u8>,
 ) {
     let mut last_movements = MovementTimestamps::default();
 
@@ -147,22 +157,12 @@ pub fn handle_input(
             (Axis::LeftStickX, false, Axis::LeftStickY),
         );
 
-        let p2_own_gamepad = gp_2.is_some();
-        let p2_x_stick = if p2_own_gamepad {
-            Axis::LeftStickX
-        } else {
-            Axis::RightStickX
-        };
-        let p2_y_stick = if p2_own_gamepad {
-            Axis::LeftStickY
-        } else {
-            Axis::RightStickY
-        };
+        let (x_stick, y_stick) = player_2_sticks(gp_2.is_some());
         update_player_movement(
             &gp_2.unwrap_or(gp),
             &player_2,
             &mut last_movements.player_2,
-            (p2_x_stick, true, p2_y_stick),
+            (x_stick, true, y_stick),
         );
 
         let scoring_player = handle_ball_movement_and_score(
@@ -172,7 +172,7 @@ pub fn handle_input(
             &mut last_movements.ball,
         );
         if let Some(p) = scoring_player {
-            let new_structs = update_game_state_and_reset(&p, state);
+            let new_structs = update_game_state_and_reset(&p, state, winning_points);
 
             *player_1.0.lock().unwrap() = new_structs.0;
             *player_2.0.lock().unwrap() = new_structs.1;

@@ -45,11 +45,12 @@ pub fn handle_ball_movement_and_score(
 pub fn update_game_state_and_reset(
     player: &state::Player,
     state: &mut state::GameState,
+winning_points: NonZero<u8>,
 ) -> (Player, Player, Ball) {
     state.score(player);
     log!(Log, "{} Scored ({})", player, state.fmt_score());
 
-    if let Some(winner) = state.winner() {
+    if let Some(winner) = state.winner(winning_points) {
         log!(Success, "{} won ({})", winner, state.fmt_score());
         std::process::exit(0);
     }

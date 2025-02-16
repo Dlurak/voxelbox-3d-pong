@@ -1,6 +1,4 @@
-use std::fmt;
-
-const WINNING_POINTS: u8 = 5;
+use std::{fmt, num::NonZero};
 
 #[derive(Default, Debug)]
 pub struct GameState {
@@ -30,10 +28,10 @@ impl GameState {
         }
     }
 
-    pub const fn winner(&self) -> Option<Player> {
-        if self.player_1_points >= WINNING_POINTS {
+    pub fn winner(&self, winning_points: NonZero<u8>) -> Option<Player> {
+        if self.player_1_points >= winning_points.into() {
             Some(Player::Player1)
-        } else if self.player_2_points >= WINNING_POINTS {
+        } else if self.player_2_points >= winning_points.into() {
             Some(Player::Player2)
         } else {
             None
