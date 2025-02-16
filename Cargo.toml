@@ -7,4 +7,5 @@ edition = "2021"
 ansi_term = "0.12.1"
 clap = { version = "4.5.29", features = ["derive"] }
 gilrs = "0.11.0"
+num-traits = "0.2.19"
 rand = "0.9.0"

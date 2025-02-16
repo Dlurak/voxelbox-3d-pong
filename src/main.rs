@@ -3,6 +3,7 @@ mod game;
 mod log;
 mod macros;
 mod odd;
+mod positive;
 mod prelude;
 mod voxelbox;
 
@@ -10,10 +11,13 @@ use clap::Parser;
 use game::input::handle_input;
 use gilrs::Gilrs;
 use log::Severity;
+use positive::Positive;
 use prelude::*;
-use std::sync::{Arc, LazyLock, Mutex};
-use std::thread;
-use std::time::Duration;
+use std::{
+    sync::{Arc, LazyLock, Mutex},
+    thread,
+    time::Duration,
+};
 
 const FPS: f32 = 10.0;
 static RENDER_FRAME_DURATION: LazyLock<Duration> =
@@ -46,24 +50,43 @@ fn render_loop(
     }
 }
 
-fn sensitivity_parser(s: &str) -> Result<f32, String> {
-    let num: f32 = s.parse().map_err(|_| format!("`{s}` isn't a number"))?;
-    if num > 0.0 {
-        Ok(num)
-    } else {
-        Err(format!("{s} isn't bigger than 0"))
-    }
+fn sensitivity_parser(s: &str) -> Result<Positive<f32>, String> {
+    s.parse()
+        .map_err(|_| format!("{s} isn't a number"))
+        .and_then(|n| Positive::new(n).ok_or_else(|| format!("{s} is bigger than 0")))
 }
 
 #[derive(Parser)]
+#[command(version, about = "3d Pong on the Voxelbox", long_about = None)]
 struct Args {
-    #[arg(long, default_value_t = 1.5, value_parser = sensitivity_parser)]
-    sensitivity_p1: f32,
-    #[arg(long, default_value_t = 1.5, value_parser = sensitivity_parser)]
-    sensitivity_p2: f32,
-    #[arg(long, default_value_t = String::from("127.0.0.1"))]
+    /// Sensitivity of Player 1 (Green), controls paddle speed
+    #[arg(
+        long,
+        visible_alias = "sens-p1",
+        default_value_t = Positive::new(1.5).unwrap(),
+        value_parser = sensitivity_parser
+    )]
+    sensitivity_p1: Positive<f32>,
+    #[arg(
+        long,
+        visible_alias = "sens-p2",
+        default_value_t = Positive::new(1.5).unwrap(),
+        value_parser = sensitivity_parser
+    )]
+    /// Sensitivity of Player 2 (Yellow), controls paddle speed
+    sensitivity_p2: Positive<f32>,
+    /// IP-Address of the Voxelbox
+    #[arg(
+        long,
+        default_value_t = String::from("127.0.0.1"),
+    )]
     ip: String,
-    #[arg(long, default_value_t = 5005, value_parser = clap::value_parser!(u16).range(1..))]
+    /// Port of the Voxelbox
+    #[arg(
+        long,
+        default_value_t = 5005,
+        value_parser = clap::value_parser!(u16).range(1..)
+    )]
     port: u16,
 }
 
@@ -80,14 +103,11 @@ fn main() {
         })
         .0;
     let gp_id_2 = gamepads.next().map(|v| v.0);
-    match gp_id_2 {
-        Some(_) => {
-            log!(Log, "Both player have a own gamepad");
-        }
-        None => {
-            log!(Log, "Both player share one gamepad");
-        }
-    }
+    let log_msg = match gp_id_2 {
+        Some(_) => "Both player have a own gamepad",
+        None => "Both player share one gamepad",
+    };
+    log!(Log, "{}", log_msg);
 
     let mut game_state = game::state::GameState::default();
 
@@ -104,7 +124,7 @@ fn main() {
     let input_thread = thread::spawn(move || {
         handle_input(
             (player_1_clone, args.sensitivity_p1),
-            (player_2_clone, args.sensitivity_p1),
+            (player_2_clone, args.sensitivity_p2),
             ball_clone,
             &mut game_state,
             &mut gilrs,

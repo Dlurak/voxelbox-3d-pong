@@ -1,3 +1,5 @@
+use crate::positive::Positive;
+
 use super::{
     ball::Ball,
     ball_movement::{handle_ball_movement_and_score, update_game_state_and_reset},
@@ -15,16 +17,16 @@ const IGNORE_THRESHOLD: f32 = 0.15;
 const MIN_DELAY: Duration = Duration::from_millis(50);
 const MAX_DELAY: Duration = Duration::from_millis(300);
 
-fn compute_delay(controller_axis_value: f32, sensitivity: f32) -> Duration {
+fn compute_delay(controller_axis_value: f32, sensitivity: &Positive<f32>) -> Duration {
     let normalized_axis =
         (controller_axis_value.abs() - IGNORE_THRESHOLD) / (1.0 - IGNORE_THRESHOLD);
     let ms_range = (MAX_DELAY - MIN_DELAY).as_millis() as f32;
-    let extra_ms = (ms_range * (1.0 - normalized_axis.powf(sensitivity))).round() as u64;
+    let extra_ms = (ms_range * (1.0 - normalized_axis.powf(sensitivity.value()))).round() as u64;
 
     MIN_DELAY + Duration::from_millis(extra_ms)
 }
 
-fn should_move(axis_value: f32, last_move: Instant, sensitivity: f32) -> bool {
+fn should_move(axis_value: f32, last_move: Instant, sensitivity: &Positive<f32>) -> bool {
     let now = Instant::now();
 
     let input_is_strong = axis_value.abs() > IGNORE_THRESHOLD;
@@ -38,7 +40,7 @@ fn handle_player_axis(
     axis: Axis,
     last_moved: Instant,
     player: &Arc<Mutex<Player>>,
-    sensitivity: f32,
+    sensitivity: &Positive<f32>,
     reverse: bool,
 ) -> Option<Instant> {
     let axis_value = gp.value(axis);
@@ -99,7 +101,7 @@ impl Default for PlayerMovementTimestamps {
 
 fn update_player_movement(
     gamepad: &gilrs::Gamepad,
-    player: &(Arc<Mutex<Player>>, f32),
+    player: &(Arc<Mutex<Player>>, Positive<f32>),
     movement: &mut PlayerMovementTimestamps,
     additional_information: (Axis, bool, Axis),
 ) {
@@ -108,7 +110,7 @@ fn update_player_movement(
         additional_information.0,
         movement.x,
         &player.0,
-        player.1,
+        &player.1,
         additional_information.1,
     )
     .unwrap_or(movement.x);
@@ -117,15 +119,15 @@ fn update_player_movement(
         additional_information.2,
         movement.y,
         &player.0,
-        player.1,
+        &player.1,
         false,
     )
     .unwrap_or(movement.y);
 }
 
 pub fn handle_input(
-    player_1: (Arc<Mutex<Player>>, f32),
-    player_2: (Arc<Mutex<Player>>, f32),
+    player_1: (Arc<Mutex<Player>>, Positive<f32>),
+    player_2: (Arc<Mutex<Player>>, Positive<f32>),
     ball: Arc<Mutex<Ball>>,
     state: &mut GameState,
     gilrs: &mut Gilrs,
