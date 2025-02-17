@@ -9,13 +9,9 @@ mod prelude;
 mod voxelbox;
 
 use clap::Parser;
-use game::{input::handle_input, render_loop};
+use game::game_loop;
 use gilrs::Gilrs;
 use log::Severity;
-use std::{
-    sync::{Arc, Mutex},
-    thread,
-};
 
 fn main() {
     let args = cli::Args::parse();
@@ -36,34 +32,12 @@ fn main() {
     };
     log!(Log, "{}", log_msg);
 
-    let mut game_state = game::state::GameState::default();
-
-    let voxelbox = Arc::new(Mutex::new(voxelbox::Voxelbox::new(args.ip, args.port)));
-    let player_1 = Arc::new(Mutex::new(game::player::Player::player_1()));
-    let player_2 = Arc::new(Mutex::new(game::player::Player::player_2()));
-    let ball = Arc::new(Mutex::new(game::ball::Ball::default()));
-
-    let voxelbox_clone = Arc::clone(&voxelbox);
-    let player_1_clone = Arc::clone(&player_1);
-    let player_2_clone = Arc::clone(&player_2);
-    let ball_clone = Arc::clone(&ball);
-
-    let input_thread = thread::spawn(move || {
-        handle_input(
-            (player_1_clone, args.sensitivity_p1),
-            (player_2_clone, args.sensitivity_p2),
-            ball_clone,
-            &mut game_state,
-            &mut gilrs,
-            (gp_id, gp_id_2),
-            args.winning_points,
-        );
-    });
-    let render_thread =
-        thread::spawn(move || render_loop(&voxelbox_clone, &player_1, &player_2, &ball));
-
-    input_thread
-        .join()
-        .expect("The input handling thread paniced");
-    render_thread.join().expect("The rendering thread paniced");
+    game_loop(
+        args.sensitivity_p1,
+        args.sensitivity_p2,
+        (args.ip, args.port),
+        &mut gilrs,
+        (gp_id, gp_id_2),
+        args.winning_points,
+    );
 }

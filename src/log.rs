@@ -1,6 +1,5 @@
 use ansi_term::Color;
 
-#[allow(dead_code)]
 pub enum Severity {
     Critical,
     Warning,

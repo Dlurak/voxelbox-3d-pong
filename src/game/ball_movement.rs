@@ -5,30 +5,23 @@ use super::{
     player::Player,
     state,
 };
-use std::{
-    num::NonZero,
-    sync::{Arc, Mutex},
-    time::Instant,
-};
+use std::{num::NonZero, time::Instant};
 
 pub fn handle_ball_movement_and_score(
-    ball: &Arc<Mutex<Ball>>,
-    player_1: &Arc<Mutex<Player>>,
-    player_2: &Arc<Mutex<Player>>,
+    ball: &mut Ball,
+    player_1: &Player,
+    player_2: &Player,
     last_move: &mut Instant,
 ) -> Option<state::Player> {
     let now = Instant::now();
-    let mut ball = ball.lock().unwrap();
 
     if now.duration_since(*last_move) >= ball.movement_intervall {
         *last_move = now;
 
-        let colliding_sides =
-            ball.colliding_sides(&player_1.lock().unwrap(), &player_2.lock().unwrap());
+        let colliding_sides = ball.colliding_sides(player_1, player_2);
 
         ball.change_direction(&colliding_sides);
         ball.apply_movement();
-        drop(ball);
 
         if colliding_sides.contains(&CollisionSide::Right) {
             Some(state::Player::Player1)

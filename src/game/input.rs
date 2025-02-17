@@ -1,17 +1,8 @@
 use crate::positive::Positive;
 
-use super::{
-    ball::Ball,
-    ball_movement::{handle_ball_movement_and_score, update_game_state_and_reset},
-    player::Player,
-    state::GameState,
-};
-use gilrs::{Axis, Gamepad, Gilrs};
-use std::{
-    num::NonZero,
-    sync::{Arc, Mutex},
-    time::{Duration, Instant},
-};
+use super::player::Player;
+use gilrs::{Axis, Gamepad};
+use std::time::{Duration, Instant};
 
 const IGNORE_THRESHOLD: f32 = 0.15;
 
@@ -40,7 +31,7 @@ fn handle_player_axis(
     gp: &Gamepad,
     axis: Axis,
     last_moved: Instant,
-    player: &Arc<Mutex<Player>>,
+    player: &mut Player,
     sensitivity: &Positive<f32>,
     reverse: bool,
 ) -> Option<Instant> {
@@ -59,34 +50,18 @@ fn handle_player_axis(
 
     match axis {
         Axis::LeftStickX | Axis::RightStickX => {
-            player.lock().unwrap().inc_x(movement_size);
+            player.inc_x(movement_size);
             Some(Instant::now())
         }
         Axis::LeftStickY | Axis::RightStickY => {
-            player.lock().unwrap().inc_y(movement_size);
+            player.inc_y(movement_size);
             Some(Instant::now())
         }
         _ => None,
     }
 }
 
-struct MovementTimestamps {
-    player_1: PlayerMovementTimestamps,
-    player_2: PlayerMovementTimestamps,
-    ball: Instant,
-}
-
-impl Default for MovementTimestamps {
-    fn default() -> Self {
-        Self {
-            player_1: PlayerMovementTimestamps::default(),
-            player_2: PlayerMovementTimestamps::default(),
-            ball: Instant::now(),
-        }
-    }
-}
-
-struct PlayerMovementTimestamps {
+pub struct PlayerMovementTimestamps {
     x: Instant,
     y: Instant,
 }
@@ -100,9 +75,9 @@ impl Default for PlayerMovementTimestamps {
     }
 }
 
-fn update_player_movement(
+pub fn update_player_movement(
     gamepad: &gilrs::Gamepad,
-    player: &(Arc<Mutex<Player>>, Positive<f32>),
+    player: (&mut Player, &Positive<f32>),
     movement: &mut PlayerMovementTimestamps,
     additional_information: (Axis, bool, Axis),
 ) {
@@ -110,8 +85,8 @@ fn update_player_movement(
         gamepad,
         additional_information.0,
         movement.x,
-        &player.0,
-        &player.1,
+        player.0,
+        player.1,
         additional_information.1,
     )
     .unwrap_or(movement.x);
@@ -119,64 +94,17 @@ fn update_player_movement(
         gamepad,
         additional_information.2,
         movement.y,
-        &player.0,
-        &player.1,
+        player.0,
+        player.1,
         false,
     )
     .unwrap_or(movement.y);
 }
 
-const fn player_2_sticks(own_gamepad: bool) -> (Axis, Axis) {
+pub const fn player_2_sticks(own_gamepad: bool) -> (Axis, Axis) {
     if own_gamepad {
         (Axis::LeftStickX, Axis::LeftStickY)
     } else {
         (Axis::RightStickX, Axis::RightStickY)
-    }
-}
-
-pub fn handle_input(
-    player_1: (Arc<Mutex<Player>>, Positive<f32>),
-    player_2: (Arc<Mutex<Player>>, Positive<f32>),
-    ball: Arc<Mutex<Ball>>,
-    state: &mut GameState,
-    gilrs: &mut Gilrs,
-    gamepad_id: (gilrs::GamepadId, Option<gilrs::GamepadId>),
-    winning_points: NonZero<u8>,
-) {
-    let mut last_movements = MovementTimestamps::default();
-
-    loop {
-        gilrs.next_event();
-        let gp = gilrs.gamepad(gamepad_id.0);
-        let gp_2 = gamepad_id.1.map(|id| gilrs.gamepad(id));
-
-        update_player_movement(
-            &gp,
-            &player_1,
-            &mut last_movements.player_1,
-            (Axis::LeftStickX, false, Axis::LeftStickY),
-        );
-
-        let (x_stick, y_stick) = player_2_sticks(gp_2.is_some());
-        update_player_movement(
-            &gp_2.unwrap_or(gp),
-            &player_2,
-            &mut last_movements.player_2,
-            (x_stick, true, y_stick),
-        );
-
-        let scoring_player = handle_ball_movement_and_score(
-            &ball,
-            &player_1.0,
-            &player_2.0,
-            &mut last_movements.ball,
-        );
-        if let Some(p) = scoring_player {
-            let new_structs = update_game_state_and_reset(&p, state, winning_points);
-
-            *player_1.0.lock().unwrap() = new_structs.0;
-            *player_2.0.lock().unwrap() = new_structs.1;
-            *ball.lock().unwrap() = new_structs.2;
-        }
     }
 }
