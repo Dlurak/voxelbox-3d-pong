@@ -4,6 +4,8 @@ use clap::Parser;
 
 use crate::positive::Positive;
 
+const DEFAULT_SENSITIVITY: f32 = 1.3;
+
 #[derive(Parser)]
 #[command(version, about = "3d Pong on the Voxelbox", long_about = None)]
 pub struct Args {
@@ -11,14 +13,14 @@ pub struct Args {
     #[arg(
         long,
         visible_alias = "sens-p1",
-        default_value_t = Positive::new(1.5).unwrap(),
+        default_value_t = Positive::new(DEFAULT_SENSITIVITY).unwrap(),
         value_parser = sensitivity_parser
     )]
     pub sensitivity_p1: Positive<f32>,
     #[arg(
         long,
         visible_alias = "sens-p2",
-        default_value_t = Positive::new(1.5).unwrap(),
+        default_value_t = Positive::new(DEFAULT_SENSITIVITY).unwrap(),
         value_parser = sensitivity_parser
     )]
     /// Sensitivity of Player 2 (Yellow), controls paddle speed

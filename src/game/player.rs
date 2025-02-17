@@ -19,7 +19,7 @@ impl PlayerSite {
 pub struct Player {
     color: Rgb,
     position: Position,
-    site: PlayerSite,
+    site: PlayerSite
 }
 
 struct Position {

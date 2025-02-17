@@ -1,7 +1,7 @@
-use crate::{log::Severity, positive::Positive, prelude::*, voxelbox};
+use crate::{input::JoyStick, log::Severity, positive::Positive, prelude::*, voxelbox};
 use ball_movement::{handle_ball_movement_and_score, update_game_state_and_reset};
-use gilrs::{Axis, Gilrs};
-use input::{player_2_sticks, update_player_movement, PlayerMovementTimestamps};
+use gilrs::Gilrs;
+use input::{handle_player_input, PlayerMovementTimestamps};
 use std::{
     num::NonZero,
     sync::LazyLock,
@@ -53,26 +53,29 @@ pub fn game_loop(
     let mut player_2 = player::Player::player_2();
     let mut ball = ball::Ball::default();
 
+    let mut player_1_joystick = JoyStick::new_player_1(gamepad_id.0, player_1_sensitivity);
+    let mut player_2_joystick = JoyStick::new_player_2(
+        gamepad_id.1.unwrap_or(gamepad_id.0),
+        player_2_sensitivity,
+        gamepad_id.1.is_some(),
+    );
+
     loop {
-        gilrs.next_event();
-        let gp = gilrs.gamepad(gamepad_id.0);
-        let gp_2 = gamepad_id.1.map(|id| gilrs.gamepad(id));
+        if let Some(event) = gilrs.next_event() {
+            player_1_joystick.add_event(&event);
+            player_2_joystick.add_event(&event);
+        }
 
-        update_player_movement(
-            &gp,
-            (&mut player_1, &player_1_sensitivity),
+        handle_player_input(
+            &player_1_joystick,
+            &mut player_1,
             &mut last_movements.player_1,
-            (Axis::LeftStickX, false, Axis::LeftStickY),
         );
-
-        let (x_stick, y_stick) = player_2_sticks(gp_2.is_some());
-        update_player_movement(
-            &gp_2.unwrap_or(gp),
-            (&mut player_2, &player_2_sensitivity),
+        handle_player_input(
+            &player_2_joystick,
+            &mut player_2,
             &mut last_movements.player_2,
-            (x_stick, true, y_stick),
         );
-
         let scoring_player = handle_ball_movement_and_score(
             &mut ball,
             &player_1,
