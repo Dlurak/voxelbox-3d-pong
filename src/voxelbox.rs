@@ -25,6 +25,11 @@ impl Leds {
     }
 }
 
+pub trait Draw {
+    fn color(&self) -> Rgb;
+    fn draw(&self) -> Vec<(usize, usize, usize)>;
+}
+
 #[derive(Debug)]
 pub enum VoxelBoxSendError {
     BindError,
@@ -79,12 +84,13 @@ impl Voxelbox {
         Ok(())
     }
 
-    pub fn set_led<X, Y, Z>(&mut self, x: X, y: Y, z: Z, color: Rgb)
+    pub fn draw<T>(&mut self, object: &T)
     where
-        X: Into<usize>,
-        Y: Into<usize>,
-        Z: Into<usize>,
+        T: Draw,
     {
-        self.leds.set_led(x.into(), y.into(), z.into(), color);
+        let color = object.color();
+        for (x, y, z) in object.draw() {
+            self.leds.set_led(x, y, z, color);
+        }
     }
 }

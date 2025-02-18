@@ -10,8 +10,8 @@ use std::{
 
 pub mod ball;
 pub mod ball_movement;
+pub mod collision;
 pub mod input;
-pub mod pad;
 pub mod player;
 pub mod state;
 
@@ -93,26 +93,14 @@ pub fn game_loop(
         let now = Instant::now();
         let duration_since_last_render = now - last_movements.render;
         if duration_since_last_render >= *RENDER_FRAME_DURATION {
-            render(&mut voxelbox, &player_1, &player_2, &ball);
+            voxelbox.reset_leds();
+            voxelbox.draw(&player_1);
+            voxelbox.draw(&player_2);
+            voxelbox.draw(&ball);
+            voxelbox
+                .send()
+                .log(Severity::Warning, "Could not send pixel-data to Voxelbox");
             last_movements.render = now;
         }
     }
-}
-
-fn render(
-    vbox: &mut voxelbox::Voxelbox,
-    player_1: &player::Player,
-    player_2: &player::Player,
-    ball: &ball::Ball,
-) {
-    vbox.reset_leds();
-    player_1
-        .draw_pad(vbox)
-        .log(Severity::Warning, "Unable to draw player 1");
-    player_2
-        .draw_pad(vbox)
-        .log(Severity::Warning, "Unable to draw player 2");
-    ball.draw(vbox);
-    vbox.send()
-        .log(Severity::Warning, "Could not send pixel-data to Voxelbox");
 }

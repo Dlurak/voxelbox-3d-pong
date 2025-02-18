@@ -1,7 +1,8 @@
 use crate::log;
 
 use super::{
-    ball::{Ball, CollisionSide},
+    ball::Ball,
+    collision::{Bounds, Collision, CollisionSide},
     player::Player,
     state,
 };
@@ -18,9 +19,20 @@ pub fn handle_ball_movement_and_score(
     if now.duration_since(*last_move) >= ball.movement_intervall {
         *last_move = now;
 
-        let colliding_sides = ball.colliding_sides(player_1, player_2);
+        let p1_collision = ball.collides(player_1);
+        let p2_collision = ball.collides(player_2);
+        let colliding_sides = ball.collides(&Bounds);
 
-        ball.change_direction(&colliding_sides);
+        ball.change_direction((
+            p1_collision || p2_collision,
+            colliding_sides.contains(&CollisionSide::Top)
+                || colliding_sides.contains(&CollisionSide::Bottom),
+            colliding_sides.contains(&CollisionSide::Front)
+                || colliding_sides.contains(&CollisionSide::Back),
+        ));
+        if (!colliding_sides.is_empty()) || p1_collision || p2_collision {
+            ball.handle_collision();
+        }
         ball.apply_movement();
 
         if colliding_sides.contains(&CollisionSide::Right) {

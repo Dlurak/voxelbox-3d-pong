@@ -67,11 +67,11 @@ impl JoyStick {
         }
     }
 
-    fn x_value(&self) -> Option<f32> {
+    const fn x_value(&self) -> Option<f32> {
         self.latest_x
     }
 
-    fn y_value(&self) -> Option<f32> {
+    const fn y_value(&self) -> Option<f32> {
         self.latest_y
     }
 }

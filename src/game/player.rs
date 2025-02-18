@@ -1,6 +1,23 @@
-use super::pad;
+use std::sync::LazyLock;
+
 use crate::color::Rgb;
-use crate::voxelbox;
+use crate::odd::Odd;
+use crate::voxelbox::{self, Draw};
+
+pub const PAD_SIZE: Odd<u8> = Odd::<u8>::new_panics(5);
+
+pub static DRAWING_DELTAS: LazyLock<Vec<(i8, i8)>> = LazyLock::new(|| {
+    let size = PAD_SIZE.value() as i8;
+    let padding = (size - 1) / 2;
+
+    (-padding..=padding)
+        .flat_map(|y| {
+            let width = size - (y.abs() * 2);
+            let half = width / 2;
+            (-half..=half).map(move |x| (x, y))
+        })
+        .collect()
+});
 
 enum PlayerSite {
     Left,
@@ -19,7 +36,7 @@ impl PlayerSite {
 pub struct Player {
     color: Rgb,
     position: Position,
-    site: PlayerSite
+    site: PlayerSite,
 }
 
 struct Position {
@@ -52,21 +69,12 @@ impl Player {
         }
     }
 
-    pub fn draw_pad(&self, voxelbox: &mut voxelbox::Voxelbox) -> Result<(), pad::OutOfBounds> {
-        let (x1, x2) = self.site.get_x();
-
-        pad::draw_pad(voxelbox, self.color, x1, self.position.y, self.position.x)?;
-        pad::draw_pad(voxelbox, self.color, x2, self.position.y, self.position.x)?;
-
-        Ok(())
-    }
-
     pub const fn full_position(&self) -> ((u8, u8), u8, u8) {
         (self.site.get_x(), self.position.y, self.position.x)
     }
 
     pub fn inc_x(&mut self, x: i16) {
-        let padding = (super::pad::SIZE - 1) / 2;
+        let padding = (PAD_SIZE - 1) / 2;
         let lower_limit: i16 = padding.into();
         let upper_limit: i16 = (voxelbox::DEEPTH - 1 - padding).into();
 
@@ -74,10 +82,33 @@ impl Player {
     }
 
     pub fn inc_y(&mut self, y: i16) {
-        let padding = (super::pad::SIZE - 1) / 2;
+        let padding = (PAD_SIZE - 1) / 2;
         let lower_limit: i16 = padding.into();
         let upper_limit: i16 = (voxelbox::HEIGHT - 1 - padding).into();
 
         self.position.y = (self.position.y as i16 + y).clamp(lower_limit, upper_limit) as u8;
+    }
+}
+
+impl Draw for Player {
+    fn color(&self) -> Rgb {
+        self.color
+    }
+
+    fn draw(&self) -> Vec<(usize, usize, usize)> {
+        let (x1, x2) = self.site.get_x();
+        let x1 = x1 as usize;
+        let x2 = x2 as usize;
+
+        let y = self.position.y;
+        let z = self.position.x;
+        (*DRAWING_DELTAS)
+            .iter()
+            .flat_map(|(delta_y, delta_z)| {
+                let y = (delta_y + y as i8) as usize;
+                let z = (delta_z + z as i8) as usize;
+                [(x1, y, z), (x2, y, z)]
+            })
+            .collect()
     }
 }
