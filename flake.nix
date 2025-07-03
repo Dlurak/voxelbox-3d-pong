@@ -1,29 +1,34 @@
 {
   inputs = {
-    naersk.url = "github:nix-community/naersk/master";
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
-    utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = {
-    self,
-    nixpkgs,
-    utils,
-    naersk,
-  }:
-    utils.lib.eachDefaultSystem (
-      system: let
-        pkgs = import nixpkgs {inherit system;};
-        naersk-lib = pkgs.callPackage naersk {};
-      in {
-        defaultPackage = naersk-lib.buildPackage {
-          src = ./.;
-          nativeBuildInputs = [pkgs.pkg-config];
-          buildInputs = [pkgs.libudev-zero];
-        };
-
-        devShell = with pkgs;
-          mkShell {
+  outputs =
+    {
+      self,
+      nixpkgs,
+    }:
+    let
+      forAllSystems =
+        function:
+        nixpkgs.lib.genAttrs [ "aarch64-linux" "x86_64-linux" ] (
+          system: function nixpkgs.legacyPackages.${system}
+        );
+    in
+    {
+      formatter = forAllSystems (pkgs: pkgs.nixfmt-tree);
+      packages = forAllSystems (
+        pkgs:
+        let
+        in
+        rec {
+          pong = import ./nix/package.nix { inherit pkgs; };
+          default = pong;
+        }
+      );
+      devShells = forAllSystems (
+        pkgs: with pkgs; {
+          default = mkShell {
             buildInputs = [
               cargo
               rustc
@@ -37,6 +42,7 @@
             ];
             RUST_SRC_PATH = rustPlatform.rustLibSrc;
           };
-      }
-    );
+        }
+      );
+    };
 }

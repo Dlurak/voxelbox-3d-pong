@@ -63,8 +63,7 @@ impl Voxelbox {
         let socket = UdpSocket::bind("0.0.0.0:0").map_err(|_| VoxelBoxSendError::BindError)?;
         let destination = format!("{}:{}", self.ip, self.port);
 
-        let mut data =
-            Vec::with_capacity((WIDTH as usize) * (HEIGHT as usize) * (DEEPTH as usize) * 3);
+        let mut data = Vec::with_capacity(20_usize.pow(3) * 3);
 
         for z in 0..20 {
             for y in 0..20 {

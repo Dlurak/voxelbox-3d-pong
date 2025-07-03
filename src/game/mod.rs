@@ -83,11 +83,8 @@ pub fn game_loop(
             &mut last_movements.ball,
         );
         if let Some(p) = scoring_player {
-            let new_structs = update_game_state_and_reset(&p, &mut state, winning_points);
-
-            player_1 = new_structs.0;
-            player_2 = new_structs.1;
-            ball = new_structs.2;
+            (player_1, player_2, ball) =
+                update_game_state_and_reset(&p, &mut state, winning_points);
         }
 
         let now = Instant::now();

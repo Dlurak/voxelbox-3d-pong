@@ -1,7 +1,7 @@
 mod cli;
 mod color;
-mod input;
 mod game;
+mod input;
 mod log;
 mod macros;
 mod odd;

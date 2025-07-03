@@ -53,18 +53,18 @@ impl JoyStick {
             return None;
         }
 
-        if let EventType::AxisChanged(axis, strength, _) = event.event {
-            match (self.is_left_stick, axis) {
-                (true, Axis::LeftStickX) => self.latest_x = Some(strength),
-                (true, Axis::LeftStickY) => self.latest_y = Some(strength),
-                (false, Axis::RightStickX) => self.latest_x = Some(strength),
-                (false, Axis::RightStickY) => self.latest_y = Some(strength),
-                _ => return None,
-            }
-            Some((axis, strength))
-        } else {
-            None
+        let EventType::AxisChanged(axis, strength, _) = event.event else {
+            return None;
+        };
+
+        match (self.is_left_stick, axis) {
+            (true, Axis::LeftStickX) => self.latest_x = Some(strength),
+            (true, Axis::LeftStickY) => self.latest_y = Some(strength),
+            (false, Axis::RightStickX) => self.latest_x = Some(strength),
+            (false, Axis::RightStickY) => self.latest_y = Some(strength),
+            _ => return None,
         }
+        Some((axis, strength))
     }
 
     const fn x_value(&self) -> Option<f32> {
